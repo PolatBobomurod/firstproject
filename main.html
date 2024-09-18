@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electro Transport Finder</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        /* Universal reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body and general settings */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header style */
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 20px;
+        }
+
+        /* Map container */
+        #map {
+            flex: 1;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Bottom menu */
+        .menu {
+            display: flex;
+            justify-content: space-around;
+            background-color: #34495e;
+            padding: 10px;
+        }
+
+        .menu button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .menu button:hover {
+            background-color: #27ae60;
+        }
+
+        /* Fullscreen "Brend" Popup */
+        .fullscreen-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #3498db; /* Blue background */
+            color: white;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .fullscreen-popup h1 {
+            font-size: 36px;
+            margin: 0;
+        }
+
+        .fullscreen-popup p {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+
+        /* Responsive for mobile devices */
+        @media (max-width: 600px) {
+            header {
+                font-size: 18px;
+                padding: 10px;
+            }
+
+            .menu {
+                display: none; /* Hide the bottom menu on mobile */
+            }
+
+            /* Floating action buttons */
+            .floating-menu {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                z-index: 1000; /* Ensures the buttons are above the map */
+            }
+
+            .floating-menu button {
+                background-color: #2ecc71;
+                color: white;
+                border: none;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                margin-bottom: 10px;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+            .floating-menu button:hover {
+                background-color: #27ae60;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        Electro Transport Finder
+    </header>
+
+    <!-- Map Section -->
+    <div id="map"></div>
+
+    <!-- Bottom Menu (Desktop) -->
+    <div class="menu">
+        <button id="samokatsBtn">Samokatlar</button>
+        <button id="carsBtn">Electromobiles</button>
+        <button id="stationsBtn">Charging Stations</button>
+    </div>
+
+    <!-- Floating Action Buttons for Mobile -->
+    <div class="floating-menu">
+        <button id="samokatsBtn">S</button>
+        <button id="carsBtn">E</button>
+        <button id="stationsBtn">C</button>
+        <button id="locateBtn">L</button>
+    </div>
+
+    <!-- Fullscreen Popup -->
+    <div class="fullscreen-popup" id="fullscreenPopup">
+        <div>
+            <h1>Brend</h1>
+            <p>Welcome to the Electro Transport Finder!</p>
+        </div>
+    </div>
+
+    <!-- Leaflet.js -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Initializing map
+        var map = L.map('map').setView([41.2995, 69.2401], 14); // Toshkent markazi
+
+        // Adding OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Adding markers including samokatlar and charging stations
+        var markers = [
+            { position: [41.3100, 69.2900], type: 'Samokat', title: 'Samokat Location 1', brand: 'Brand A' },
+            { position: [41.3150, 69.2950], type: 'Samokat', title: 'Samokat Location 2', brand: 'Brand B' },
+            { position: [41.3220, 69.2350], type: 'Electromobile', title: 'Electromobile 1' },
+            { position: [41.2950, 69.2400], type: 'Charging Station', title: 'Charging Station 1' },
+            { position: [41.3000, 69.2500], type: 'Charging Station', title: 'Charging Station 2' },
+            { position: [41.3100, 69.2600], type: 'Charging Station', title: 'Charging Station 3' }
+        ];
+
+        markers.forEach(function(markerInfo) {
+            var marker = L.marker(markerInfo.position).addTo(map);
+            marker.bindPopup('<b>' + markerInfo.title + '</b><br />' + 'This is a ' + markerInfo.type);
+        });
+
+        // Example popup function
+        function showPopup(title, description) {
+            const popup = document.getElementById('infoPopup');
+            popup.querySelector('h3').textContent = title;
+            popup.querySelector('p').textContent = description;
+            popup.classList.add('active');
+
+            // Hide popup after 5 seconds
+            setTimeout(function() {
+                popup.classList.remove('active');
+            }, 5000); // 5000ms = 5 seconds
+        }
+
+        // Function to show all samokatlar and their brands
+        function showAllSamokats() {
+            let samokatDetails = markers
+                .filter(marker => marker.type === 'Samokat')
+                .map(samokat => `${samokat.title} - ${samokat.brand}`)
+                .join('<br />');
+            showPopup('Samokatlar', samokatDetails);
+        }
+
+        // Button click handlers
+        document.getElementById('samokatsBtn').addEventListener('click', function() {
+            showAllSamokats(); // Show all samokatlar and their brands
+        });
+
+        document.getElementById('carsBtn').addEventListener('click', function() {
+            showPopup('Electromobile', 'This is a location of an electromobile.');
+        });
+
+        document.getElementById('stationsBtn').addEventListener('click', function() {
+            showPopup('Charging Station', 'This is a charging station.');
+        });
+
+        // Locate function to show current user location
+        document.getElementById('locateBtn').addEventListener('click', function() {
+            map.locate({ setView: true, maxZoom: 16 });
+
+            function onLocationFound(e) {
+                var radius = e.accuracy / 2;
+                L.marker(e.latlng).addTo(map)
+                    .bindPopup("Siz " + radius + " metr radius ichida joylashgansiz").openPopup();
+                L.circle(e.latlng, radius).addTo(map);
+            }
+
+            function onLocationError(e) {
+                alert(e.message);
+            }
+
+            map.on('locationfound', onLocationFound);
+            map.on('locationerror', onLocationError);
+        });
+
+        // Show initial "Brend" message when the page loads
+        window.onload = function() {
+            const fullscreenPopup = document.getElementById('fullscreenPopup');
+            fullscreenPopup.style.display = 'flex';
+
+            // Hide the popup after 5 seconds
+            setTimeout(function() {
+                fullscreenPopup.style.display = 'none';
+            }, 5000); // 5000ms = 5 seconds
+        };
+    </script>
+
+</body>
+</html>
